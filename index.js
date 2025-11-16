@@ -13,8 +13,8 @@ app.use(cors({
 
 // ---------- ENDPOINTS ----------
 
-// 1️ GET ALL - obtener todos los conductores
-app.get("/conductores", async (req, res) => {
+// 1️⃣ GET ALL - obtener todos los conductores
+app.get("/api/conductores", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM CONDUCTORES");
     res.json(result.rows);
@@ -23,8 +23,8 @@ app.get("/conductores", async (req, res) => {
   }
 });
 
-// 2️ GET por licencia
-app.get("/conductores/licencia/:licencia", async (req, res) => {
+// 2️⃣ GET por licencia
+app.get("/api/conductores/licencia/:licencia", async (req, res) => {
   const { licencia } = req.params;
   try {
     const result = await pool.query("SELECT * FROM CONDUCTORES WHERE LICENCIA = $1", [licencia]);
@@ -37,8 +37,8 @@ app.get("/conductores/licencia/:licencia", async (req, res) => {
   }
 });
 
-// 3️ DELETE por ID
-app.delete("/conductores/:id", async (req, res) => {
+// 3️⃣ DELETE por ID
+app.delete("/api/conductores/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query("DELETE FROM CONDUCTORES WHERE ID = $1", [id]);
@@ -46,6 +46,20 @@ app.delete("/conductores/:id", async (req, res) => {
       return res.status(404).json({ message: "Conductor no encontrado" });
     }
     res.json({ message: "Conductor eliminado correctamente" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4️⃣ POST - insertar un nuevo conductor
+app.post("/api/conductores", async (req, res) => {
+  const { id, nombre, apellido, licencia, telefono, fecha_registro } = req.body;
+  try {
+    const result = await pool.query(
+      "INSERT INTO CONDUCTORES (ID, NOMBRE, APELLIDO, LICENCIA, TELEFONO, FECHA_REGISTRO) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [id, nombre, apellido, licencia, telefono, fecha_registro]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
