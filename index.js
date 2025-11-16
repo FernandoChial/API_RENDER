@@ -1,37 +1,56 @@
 const express = require("express");
-const { Pool } = require("pg");
-require("dotenv").config(); // carga las variables de .env
+const cors = require("cors");
+const pool = require("./conexionDB"); // tu conexión a PostgreSQL
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Configuración conexión PostgreSQL usando variables .env
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: process.env.PGPORT,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-
 app.use(express.json());
 
-console.log(pool)
-// GET todos los usuarios
-app.get("/api/usuarios", async (req, res) => {
+// Configuración de CORS
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
+// ---------- ENDPOINTS ----------
+
+// 1️ GET ALL - obtener todos los conductores
+app.get("/conductores", async (req, res) => {
   try {
-    const result = await pool.query("select * from schemaapi.usuarios;");
+    const result = await pool.query("SELECT * FROM CONDUCTORES");
     res.json(result.rows);
-  } catch (error) {
-    console.error("Error al obtener usuarios:", error);
-    res.status(500).json({ error: "Error en el servidor" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`API corriendo en http://localhost:${PORT}`);
+// 2️ GET por licencia
+app.get("/conductores/licencia/:licencia", async (req, res) => {
+  const { licencia } = req.params;
+  try {
+    const result = await pool.query("SELECT * FROM CONDUCTORES WHERE LICENCIA = $1", [licencia]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Conductor no encontrado" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
+// 3️ DELETE por ID
+app.delete("/conductores/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query("DELETE FROM CONDUCTORES WHERE ID = $1", [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Conductor no encontrado" });
+    }
+    res.json({ message: "Conductor eliminado correctamente" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------- Servidor ----------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
